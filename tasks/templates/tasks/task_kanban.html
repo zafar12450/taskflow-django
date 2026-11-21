@@ -1,0 +1,249 @@
+{% extends 'tasks/base.html' %}
+
+{% block title %}Kanban Board | TaskFlow{% endblock %}
+{% block breadcrumb %}Kanban Board{% endblock %}
+
+{% block content %}
+<style>
+.kanban-heading-actions{display:flex;gap:10px;flex-wrap:wrap}
+.kanban-board{display:grid;grid-template-columns:repeat(3,minmax(250px,1fr));gap:18px;align-items:start}
+.kanban-column{min-width:0;min-height:350px;padding:14px;background:#eef0f7;border:1px solid #e5e7ef;border-radius:14px;transition:background .2s,border-color .2s}
+.kanban-column.drag-over{background:#eeedff;border:1px dashed #6258e8}
+.kanban-column-header{display:flex;justify-content:space-between;align-items:center;padding:5px 3px 15px}
+.kanban-column-title{display:flex;align-items:center;gap:9px;font-size:13px;font-weight:800}
+.kanban-dot{width:9px;height:9px;border-radius:50%}
+.dot-todo{background:#9295a7}.dot-progress{background:#4388e5}.dot-completed{background:#18a477}
+.kanban-count{min-width:25px;height:25px;padding:0 7px;display:grid;place-items:center;border-radius:8px;background:white;color:#66697d;font-size:11px;font-weight:800}
+.kanban-cards{display:flex;flex-direction:column;gap:11px;min-height:270px}
+.kanban-card{padding:15px;background:white;border:1px solid #e7e8ef;border-radius:11px;box-shadow:0 2px 7px #191c3209;cursor:grab;transition:transform .18s,box-shadow .18s,opacity .18s}
+.kanban-card:hover{transform:translateY(-2px);box-shadow:0 7px 18px #191c3214}
+.kanban-card.dragging{opacity:.4;cursor:grabbing}
+.kanban-card-title{font-size:13px;line-height:1.5;font-weight:800;overflow-wrap:anywhere}
+.kanban-card-description{margin-top:7px;color:#85889d;font-size:11px;line-height:1.6;overflow-wrap:anywhere}
+.kanban-card-meta{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-top:15px}
+.kanban-due-date{color:#85889d;font-size:10px}
+.kanban-card-actions{display:flex;gap:12px;margin-top:13px;padding-top:11px;border-top:1px solid #f0f0f4}
+.kanban-card-actions a{color:#6e7185;font-size:10px;font-weight:700}
+.kanban-card-actions a:hover{color:#6258e8}
+.kanban-empty{padding:25px 12px;border:1px dashed #d8d9e3;border-radius:10px;text-align:center;color:#9295a7;font-size:11px}
+.kanban-feedback{display:none;margin-bottom:15px;padding:11px 14px;border-radius:9px;font-size:12px;font-weight:700}
+.kanban-feedback.visible{display:block}.kanban-feedback.success{background:#e5f8f0;color:#168354}.kanban-feedback.error{background:#fff0f0;color:#c64c4c}
+@media(max-width:1000px){.kanban-board{grid-template-columns:1fr}.kanban-column{min-height:180px}.kanban-cards{min-height:90px}}
+</style>
+
+<div class="page-heading">
+    <div>
+        <h1 class="page-title">Kanban Board</h1>
+        <p class="page-description">Organize your work by moving tasks between stages. Drag a card into another column to update its status.</p>
+    </div>
+    <div class="kanban-heading-actions">
+        <a href="{% url 'tasks:task_list' %}" class="button secondary">Dashboard</a>
+        <a href="{% url 'tasks:task_create' %}" class="button primary">＋ New Task</a>
+    </div>
+</div>
+
+<form hidden aria-hidden="true">{% csrf_token %}</form>
+<div id="kanban-feedback" class="kanban-feedback" role="status" aria-live="polite"></div>
+
+<div class="kanban-board">
+    <section class="kanban-column" data-status="todo">
+        <div class="kanban-column-header">
+            <div class="kanban-column-title"><span class="kanban-dot dot-todo"></span>To Do</div>
+            <span class="kanban-count">{{ todo_tasks|length }}</span>
+        </div>
+        <div class="kanban-cards">
+            {% for task in todo_tasks %}
+                <article class="kanban-card" draggable="true" data-task-id="{{ task.pk }}">
+                    <div class="kanban-card-title">{{ task.title }}</div>
+                    {% if task.description %}<div class="kanban-card-description">{{ task.description|truncatechars:110 }}</div>{% endif %}
+                    <div class="kanban-card-meta">
+                        <span class="badge {{ task.priority }}">{{ task.get_priority_display }}</span>
+                        <span class="kanban-due-date">{% if task.due_date %}Due {{ task.due_date|date:"d M Y" }}{% else %}No deadline{% endif %}</span>
+                    </div>
+                    <div class="kanban-card-actions">
+                        <a href="{% url 'tasks:task_update' task.pk %}">Edit</a>
+                        <a href="{% url 'tasks:task_delete' task.pk %}">Delete</a>
+                    </div>
+                </article>
+            {% empty %}<div class="kanban-empty">Drop tasks here</div>{% endfor %}
+        </div>
+    </section>
+
+    <section class="kanban-column" data-status="in_progress">
+        <div class="kanban-column-header">
+            <div class="kanban-column-title"><span class="kanban-dot dot-progress"></span>In Progress</div>
+            <span class="kanban-count">{{ in_progress_tasks|length }}</span>
+        </div>
+        <div class="kanban-cards">
+            {% for task in in_progress_tasks %}
+                <article class="kanban-card" draggable="true" data-task-id="{{ task.pk }}">
+                    <div class="kanban-card-title">{{ task.title }}</div>
+                    {% if task.description %}<div class="kanban-card-description">{{ task.description|truncatechars:110 }}</div>{% endif %}
+                    <div class="kanban-card-meta">
+                        <span class="badge {{ task.priority }}">{{ task.get_priority_display }}</span>
+                        <span class="kanban-due-date">{% if task.due_date %}Due {{ task.due_date|date:"d M Y" }}{% else %}No deadline{% endif %}</span>
+                    </div>
+                    <div class="kanban-card-actions">
+                        <a href="{% url 'tasks:task_update' task.pk %}">Edit</a>
+                        <a href="{% url 'tasks:task_delete' task.pk %}">Delete</a>
+                    </div>
+                </article>
+            {% empty %}<div class="kanban-empty">Drop tasks here</div>{% endfor %}
+        </div>
+    </section>
+
+    <section class="kanban-column" data-status="completed">
+        <div class="kanban-column-header">
+            <div class="kanban-column-title"><span class="kanban-dot dot-completed"></span>Completed</div>
+            <span class="kanban-count">{{ completed_tasks|length }}</span>
+        </div>
+        <div class="kanban-cards">
+            {% for task in completed_tasks %}
+                <article class="kanban-card" draggable="true" data-task-id="{{ task.pk }}">
+                    <div class="kanban-card-title">{{ task.title }}</div>
+                    {% if task.description %}<div class="kanban-card-description">{{ task.description|truncatechars:110 }}</div>{% endif %}
+                    <div class="kanban-card-meta">
+                        <span class="badge {{ task.priority }}">{{ task.get_priority_display }}</span>
+                        <span class="kanban-due-date">{% if task.due_date %}Due {{ task.due_date|date:"d M Y" }}{% else %}No deadline{% endif %}</span>
+                    </div>
+                    <div class="kanban-card-actions">
+                        <a href="{% url 'tasks:task_update' task.pk %}">Edit</a>
+                        <a href="{% url 'tasks:task_delete' task.pk %}">Delete</a>
+                    </div>
+                </article>
+            {% empty %}<div class="kanban-empty">Drop tasks here</div>{% endfor %}
+        </div>
+    </section>
+</div>
+
+<script>
+(function () {
+    const board = document.querySelector('.kanban-board');
+    const feedback = document.getElementById('kanban-feedback');
+    let draggedCard = null;
+
+    function showFeedback(message, type) {
+        feedback.textContent = message;
+        feedback.className = 'kanban-feedback visible ' + type;
+        window.clearTimeout(showFeedback.timer);
+        showFeedback.timer = window.setTimeout(() => {
+            feedback.className = 'kanban-feedback';
+        }, 3500);
+    }
+
+    function getCookie(name) {
+        const cookies = document.cookie ? document.cookie.split(';') : [];
+        for (const cookie of cookies) {
+            const item = cookie.trim();
+            if (item.startsWith(name + '=')) {
+                return decodeURIComponent(item.substring(name.length + 1));
+            }
+        }
+        return '';
+    }
+
+    function updateColumnCounts() {
+        document.querySelectorAll('.kanban-column').forEach(column => {
+            const cards = column.querySelectorAll('.kanban-card');
+            const count = column.querySelector('.kanban-count');
+            let empty = column.querySelector('.kanban-empty');
+            count.textContent = cards.length;
+
+            if (cards.length === 0 && !empty) {
+                empty = document.createElement('div');
+                empty.className = 'kanban-empty';
+                empty.textContent = 'Drop tasks here';
+                column.querySelector('.kanban-cards').appendChild(empty);
+            } else if (cards.length > 0 && empty) {
+                empty.remove();
+            }
+        });
+    }
+
+    board.addEventListener('dragstart', event => {
+        const card = event.target.closest('.kanban-card');
+        if (!card) return;
+        draggedCard = card;
+        card.classList.add('dragging');
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', card.dataset.taskId);
+    });
+
+    board.addEventListener('dragend', () => {
+        if (draggedCard) draggedCard.classList.remove('dragging');
+        draggedCard = null;
+        document.querySelectorAll('.kanban-column').forEach(column => {
+            column.classList.remove('drag-over');
+        });
+    });
+
+    board.querySelectorAll('.kanban-column').forEach(column => {
+        column.addEventListener('dragover', event => {
+            event.preventDefault();
+            column.classList.add('drag-over');
+            event.dataTransfer.dropEffect = 'move';
+        });
+
+        column.addEventListener('dragleave', event => {
+            if (!column.contains(event.relatedTarget)) {
+                column.classList.remove('drag-over');
+            }
+        });
+
+        column.addEventListener('drop', async event => {
+            event.preventDefault();
+            column.classList.remove('drag-over');
+            if (!draggedCard) return;
+
+            const newStatus = column.dataset.status;
+            const oldColumn = draggedCard.closest('.kanban-column');
+            if (!oldColumn || oldColumn.dataset.status === newStatus) return;
+
+            const taskId = draggedCard.dataset.taskId;
+            const oldContainer = oldColumn.querySelector('.kanban-cards');
+            const newContainer = column.querySelector('.kanban-cards');
+            const oldNextSibling = draggedCard.nextSibling;
+
+            draggedCard.classList.remove('dragging');
+            newContainer.appendChild(draggedCard);
+            updateColumnCounts();
+
+            const formData = new FormData();
+            formData.append('status', newStatus);
+
+            try {
+                const endpoint = "{% url 'tasks:task_status_update' 0 %}"
+                    .replace('/0/status/', '/' + taskId + '/status/');
+
+                const response = await fetch(endpoint, {
+                    method: 'POST',
+                    body: formData,
+                    credentials: 'same-origin',
+                    headers: {
+                        'X-CSRFToken': getCookie('csrftoken'),
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+
+                const result = await response.json();
+                if (!response.ok || !result.success) {
+                    throw new Error(result.error || 'Could not update task status.');
+                }
+
+                showFeedback('Task moved to ' + result.status_label + '.', 'success');
+            } catch (error) {
+                if (oldNextSibling && oldNextSibling.parentNode === oldContainer) {
+                    oldContainer.insertBefore(draggedCard, oldNextSibling);
+                } else {
+                    oldContainer.appendChild(draggedCard);
+                }
+                updateColumnCounts();
+                showFeedback(error.message || 'Something went wrong. Please try again.', 'error');
+            }
+        });
+    });
+
+    updateColumnCounts();
+})();
+</script>
+{% endblock %}

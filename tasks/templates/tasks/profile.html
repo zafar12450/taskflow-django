@@ -1,0 +1,53 @@
+{% extends "tasks/base.html" %}
+
+{% block title %}Account Settings | TaskFlow{% endblock %}
+{% block breadcrumb %}Account Settings{% endblock %}
+
+{% block content %}
+<div class="page-heading">
+    <div>
+        <h1 class="page-title">Account Settings</h1>
+        <p class="page-description">Manage your personal workspace information.</p>
+    </div>
+</div>
+
+<div class="card form-card">
+    <div class="form-heading">
+        <h1>Personal Information</h1>
+        <p>Update the username and email address associated with your account.</p>
+    </div>
+
+    <form method="post" novalidate>
+        {% csrf_token %}
+
+        {% if form.non_field_errors %}
+            {{ form.non_field_errors }}
+        {% endif %}
+
+        <div class="form-group">
+            <label for="{{ form.username.id_for_label }}">Username</label>
+            {{ form.username }}
+            {{ form.username.errors }}
+        </div>
+
+        <div class="form-group">
+            <label for="{{ form.email.id_for_label }}">Email address</label>
+            {{ form.email }}
+            {{ form.email.errors }}
+        </div>
+
+        <div class="form-actions">
+            <button type="submit" class="button primary">Save Changes</button>
+            <a href="{% url 'tasks:task_list' %}" class="button secondary">Cancel</a>
+        </div>
+    </form>
+</div>
+
+<div class="card form-card" style="margin-top:22px;">
+    <div class="form-heading">
+        <h1>Password &amp; Security</h1>
+        <p>Keep your account secure by using a strong, unique password.</p>
+    </div>
+    <a href="{% url 'password_change' %}" class="button secondary">Change Password</a>
+</div>
+{% endblock %}

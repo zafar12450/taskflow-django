@@ -1,0 +1,45 @@
+
+{% extends 'tasks/base.html' %}
+
+{% block title %}Delete Task | TaskFlow{% endblock %}
+{% block breadcrumb %}Delete Task{% endblock %}
+
+{% block content %}
+
+<div class="card confirmation-card">
+
+    <div class="confirmation-icon">
+        !
+    </div>
+
+    <h1>Delete this task?</h1>
+
+    <p>
+        You're about to permanently delete
+        <strong>{{ object.title }}</strong>.
+    </p>
+
+    <p>
+        This action cannot be undone. All information associated with this task
+        will be removed.
+    </p>
+
+    <div class="confirmation-actions">
+
+        <form method="post">
+            {% csrf_token %}
+
+            <button type="submit" class="button danger-solid">
+                Yes, Delete Task
+            </button>
+        </form>
+
+        <a href="{% url 'tasks:task_list' %}" class="button secondary">
+            Cancel
+        </a>
+
+    </div>
+
+</div>
+
+{% endblock %}

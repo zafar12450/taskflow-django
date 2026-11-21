@@ -1,0 +1,65 @@
+{% extends 'tasks/base.html' %}
+
+{% block title %}Calendar | TaskFlow{% endblock %}
+{% block breadcrumb %}Calendar{% endblock %}
+
+{% block content %}
+<style>
+.calendar-card{background:#fff;border:1px solid var(--border);border-radius:14px;overflow:hidden}
+.calendar-toolbar{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:20px 22px;border-bottom:1px solid var(--border)}
+.calendar-month{font-size:19px;font-weight:800}.calendar-nav{display:flex;gap:8px}
+.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+.calendar-weekday{padding:13px 5px;text-align:center;color:var(--muted);font-size:11px;font-weight:800;text-transform:uppercase;background:#fafafd;border-bottom:1px solid var(--border)}
+.calendar-day{min-height:125px;padding:9px;border-right:1px solid #f0f0f5;border-bottom:1px solid #f0f0f5;min-width:0}
+.calendar-day:nth-child(7n){border-right:0}.calendar-day.outside{background:#fafafd;color:#c1c3ce}.calendar-day.today{background:#f5f4ff}
+.day-number{font-size:12px;font-weight:800;margin-bottom:8px}.today .day-number{display:inline-grid;place-items:center;width:25px;height:25px;border-radius:50%;background:var(--primary);color:white}
+.calendar-task{display:block;margin:4px 0;padding:5px 6px;border-radius:5px;font-size:10px;font-weight:700;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:#eeedff;color:#5146d5}
+.calendar-task.todo{background:#f0f0f5;color:#686a7b}.calendar-task.in_progress{background:#e9f1ff;color:#3c76c7}.calendar-task.completed{background:#e5f7ee;color:#168354}
+.calendar-task.high{border-left:3px solid #c64c4c}.calendar-task.medium{border-left:3px solid #d99a32}.calendar-task.low{border-left:3px solid #159b70}
+@media(max-width:750px){.calendar-day{min-height:90px;padding:5px 3px}.calendar-weekday{font-size:9px}.calendar-task{font-size:9px;padding:4px 3px}.calendar-toolbar{padding:14px}}
+@media(max-width:480px){.calendar-day{min-height:75px}.calendar-task{font-size:8px}.calendar-toolbar{align-items:flex-start;flex-direction:column}}
+</style>
+
+<div class="page-heading">
+    <div>
+        <h1 class="page-title">Task Calendar</h1>
+        <p class="page-description">See your scheduled work and deadlines month by month.</p>
+    </div>
+    <a href="{% url 'tasks:task_create' %}" class="button primary">＋ Create Task</a>
+</div>
+
+<div class="calendar-card">
+    <div class="calendar-toolbar">
+        <div class="calendar-month">{{ month_name }}</div>
+        <div class="calendar-nav">
+            <a class="button secondary" href="?year={{ previous_month.year }}&month={{ previous_month.month }}">← Previous</a>
+            <a class="button secondary" href="{% url 'tasks:task_calendar' %}">Today</a>
+            <a class="button secondary" href="?year={{ next_month.year }}&month={{ next_month.month }}">Next →</a>
+        </div>
+    </div>
+
+    <div class="calendar-grid">
+        {% for weekday in weekdays %}<div class="calendar-weekday">{{ weekday|slice:":3" }}</div>{% endfor %}
+        {% for week in month_grid %}
+            {% for day in week %}
+                {% if day %}
+                    <div class="calendar-day {% if day == today.day and calendar_month == today.month and calendar_year == today.year %}today{% endif %}">
+                        <div class="day-number">{{ day }}</div>
+                        {% for day_item in calendar_days %}
+                            {% if day_item.day == day %}
+                                {% for task in day_item.tasks %}
+                                    <a class="calendar-task {{ task.status }} {{ task.priority }}" href="{% url 'tasks:task_update' task.pk %}" title="{{ task.title }} — {{ task.get_status_display }}">{{ task.title }}</a>
+                                {% endfor %}
+                            {% endif %}
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <div class="calendar-day outside"></div>
+                {% endif %}
+            {% endfor %}
+        {% endfor %}
+    </div>
+</div>
+
+<p class="page-description" style="margin-top:14px">{{ month_task_count }} task{{ month_task_count|pluralize }} scheduled this month. Tasks without a due date do not appear on the calendar.</p>
+{% endblock %}

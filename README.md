@@ -30,9 +30,25 @@ The application is deployed on Render and uses a Supabase PostgreSQL database in
 
 ## Screenshots
 
-The live application includes four key views: Dashboard, Kanban board, Monthly calendar, and Productivity analytics.
+### Dashboard
+The dashboard gives users a quick overview of their tasks, workflow status, priorities, search, and filters.
 
-To display screenshots directly in this README on GitHub, add image files to `docs/screenshots/` and embed them with relative Markdown image links. This README does not reference screenshot files that are not yet in the repository.
+![TaskFlow Dashboard](docs/screenshots/dashboard.png)
+
+### Kanban board
+The Kanban board organizes tasks into To Do, In Progress, and Completed columns.
+
+![TaskFlow Kanban Board](docs/screenshots/kanban-board.png)
+
+### Monthly calendar
+The calendar displays scheduled tasks on their due dates in a monthly view.
+
+![TaskFlow Monthly Calendar](docs/screenshots/calendar.png)
+
+### Productivity analytics
+The analytics page summarizes completion rate, task status, priority distribution, overdue tasks, and recently created tasks.
+
+![TaskFlow Productivity Analytics](docs/screenshots/analytics.png)
 
 ## Technology stack
 
